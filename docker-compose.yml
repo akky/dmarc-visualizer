@@ -1,23 +1,40 @@
-version: '3.5'
+version: '3.8'
 services:
   parsedmarc:
+    container_name: parsedmarc
     build: ./parsedmarc/
     volumes:
       - ./files:/input:ro
       - ./output_files:/output
     command: parsedmarc -c /parsedmarc.ini /input/* --debug
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
     restart: on-failure
+    networks:
+      - dmarc_visualizer_network
 
   elasticsearch:
+    container_name: elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.5
+    ports:
+      - 9200:9200
     environment:
       - discovery.type=single-node
-    volumes:
-      - ./elastic_data:/usr/share/elasticsearch/data
+    # not mounting the volume for now, as mounting Windows host folder to Linux container causes permission issues on elasticsearch (You may need to write a Dockerfile and customize owners/permissions of this folder.)
+    # volumes:
+    #   - ./elastic_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - dmarc_visualizer_network
 
   grafana:
+    container_name: grafana
     build: ./grafana/
     ports:
       - 3000:3000
@@ -25,3 +42,8 @@ services:
     environment:
       GF_INSTALL_PLUGINS: grafana-piechart-panel,grafana-worldmap-panel
       GF_AUTH_ANONYMOUS_ENABLED: 'true'
+    networks:
+      - dmarc_visualizer_network
+
+networks:
+  dmarc_visualizer_network:
