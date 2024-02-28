@@ -3,6 +3,8 @@ services:
   parsedmarc:
     container_name: parsedmarc
     build: ./parsedmarc/
+    environment:
+      - "TZ=Asia/Tokyo"
     volumes:
       - ./files:/input:ro
       - ./output_files:/output
@@ -16,11 +18,13 @@ services:
 
   elasticsearch:
     container_name: elasticsearch
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.5
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
     ports:
       - 9200:9200
     environment:
       - discovery.type=single-node
+      - xpack.security.enabled=false
+#      - "TZ=Asia/Tokyo"
     # not mounting the volume for now, as mounting Windows host folder to Linux container causes permission issues on elasticsearch (You may need to write a Dockerfile and customize owners/permissions of this folder.)
     # volumes:
     #   - ./elastic_data:/usr/share/elasticsearch/data
@@ -42,6 +46,7 @@ services:
     environment:
       GF_INSTALL_PLUGINS: grafana-piechart-panel,grafana-worldmap-panel
       GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      TZ: 'Asia/Tokyo'
     networks:
       - dmarc_visualizer_network
 
